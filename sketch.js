@@ -90,6 +90,10 @@ function subtract(vector1, vector2) {
   return [vector1[0] - vector2[0], vector1[1] - vector2[1], vector1[2] - vector2[2]];
 }
 
+function add(vector1, vector2) {
+  return [vector1[0] + vector2[0], vector1[1] + vector2[1], vector1[2] + vector2[2]];
+}
+
 // collide() returns true if the ray collides with the Obj
 function collide(ray, obj) {
   if(obj.type == "triangle") {
@@ -98,6 +102,9 @@ function collide(ray, obj) {
     let e2 = subtract(obj.points[2], obj.points[0]);
     // console.log("e1: " + e1);
     // console.log("e2: " + e2);
+    let n = crossProduct(e1, e2);
+    n = normalize(n);
+    // console.log("n: " + n);
     let h = crossProduct(ray.direction, e2);
     // console.log("h: " + h);
     let a = dot(e1, h);
@@ -115,7 +122,7 @@ function collide(ray, obj) {
     if(v < 0 || u + v > 1) return null;
     let t = dot(e2, q);
     // console.log("t: " + t);
-    if(t > EPSILON) return t;
+    if(t > EPSILON) return { "distance": t, "normal": n };
     return null;
   }
 }
@@ -125,21 +132,63 @@ function squareValue(x) {
   return x ** 2;
 }
 
-function raytrace(ray) {
+function reflect(incident, normal) {
+  let dotProductValue = dot(incident, normal);
+  let reflected = [
+      incident[0] - 2 * dotProductValue * normal[0],
+      incident[1] - 2 * dotProductValue * normal[1],
+      incident[2] - 2 * dotProductValue * normal[2]
+  ];
+  return normalize(reflected);
+}
+
+function computeIntersectionPoint(origin, direction, distance) {
+  return [
+      origin[0] + direction[0] * distance,
+      origin[1] + direction[1] * distance,
+      origin[2] + direction[2] * distance
+ ];
+}
+
+function raytrace(ray, depth, blend = true, blendAmount = 0.5) {
   // Loop through all objects
   let closestObj;
   let closestDistance = Infinity;
   for(let i = 0; i < Objs.length; i++) {
     correctWindingOrder(Objs[i]);
-    let distance = collide(ray, Objs[i]);
-    // If the object doesn't collide with the ray, continue
-    if(distance == null) continue;
-    // If the distance is less than the closest distance
-    if(distance < closestDistance) {
-      // Set the closest distance to the distance
-      closestDistance = distance;
-      // Set the closest object to the object
-      closestObj = Objs[i];
+    let collision = collide(ray, Objs[i]);
+    // If the ray does not collide with the object, continue
+    if(collision == null) continue;
+    let distance = collision.distance;
+    let normal = collision.normal;
+    // Base case: If the depth is 0, return the color of the object
+    if(depth == 0) {
+      // If the distance is less than the closest distance
+      if(distance < closestDistance) {
+        // Set the closest distance to the distance
+        closestDistance = distance;
+        // Set the closest object to the object
+        closestObj = Objs[i];
+      }
+    } else {
+      // Compute the intersection point
+      let intersectionPoint = computeIntersectionPoint(ray.origin, ray.direction, distance);
+      // Compute the reflected ray
+      let reflectedRay = new Ray(intersectionPoint, reflect(ray.direction, normal));
+      // Recursively raytrace the reflected ray
+      if(blend) {
+        let objColor = raytrace(ray, 0, null, false, 0);
+        let reflectedColor = raytrace(reflectedRay, depth - 1, blend, blendAmount);
+        let blendedColor = {
+          r: (reflectedColor.r * blendAmount + objColor.r * (1 - blendAmount)),
+          g: (reflectedColor.g * blendAmount + objColor.g * (1 - blendAmount)),
+          b: (reflectedColor.b * blendAmount + objColor.b * (1 - blendAmount))
+        };
+        return blendedColor;
+      } else {
+        let reflectedColor = raytrace(reflectedRay, depth - 1, null, false, 0);
+        return reflectedColor;
+      }
     }
   }
   // Calculate the closest object that the ray collides with
@@ -149,10 +198,8 @@ function raytrace(ray) {
     // Return the color
     return closestObj.color;
   // If the ray does not collide with an object
-  } else {
-    // Return the background color
-    return {r: 0, g: 0, b: 0};
   }
+  return {r: 0, g: 0, b: 0};
 }
 
 function isCCW(A, B, C) {
@@ -186,7 +233,7 @@ function render(width, height) {
       // Create a ray from the camera to the pixel
       let ray = createRay(width, height, i, j);
       // Raytrace the ray
-      pixels[i].push(raytrace(ray));
+      pixels[i].push(raytrace(ray, 1));
     }
     console.log("Rendering... " + Math.round(i / width * 100) + "%");
   }
@@ -345,7 +392,7 @@ function draw() {
   if(frame > 1) return; // Stop after 1 frame (to save computation time, there's no need to render more than 1 frame when the scene is static)
   print("Rendering...");
   // TODO: Render in parellel to save computation time
-  let pixels = render(2, 2);
+  let pixels = render(400, 400);
   print("Drawing...");
   drawPixels(pixels);
   print("Done!");
