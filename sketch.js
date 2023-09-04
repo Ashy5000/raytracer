@@ -7,10 +7,17 @@ const height = 400;
 
 let Objs = [];
 
+let roboto;
+function preload() {
+  roboto = loadFont("Roboto-Regular.otf");
+}
+
 function setup() {
   // Create the canvas
-  createCanvas(width, height);
+  createCanvas(width, height, WEBGL);
   background(220);
+  // Set the font
+  textFont(roboto);
 }
 
 // defaultStroke() sets the stroke to the default (black)
@@ -22,7 +29,6 @@ function defaultStroke() {
 function drawPixel(x, y, r, g, b) {
   stroke(r, g, b);
   point(x, y);
-  defaultStroke();
 }
 
 // drawPixels() draws an array of pixels
@@ -235,7 +241,6 @@ function render(width, height) {
       // Raytrace the ray
       pixels[i].push(raytrace(ray, 1));
     }
-    console.log("Rendering... " + Math.round(i / width * 100) + "%");
   }
   return pixels;
 }
@@ -389,12 +394,39 @@ function runTests() {
 
 function draw() {
   frame++;
-  if(frame > 1) return; // Stop after 1 frame (to save computation time, there's no need to render more than 1 frame when the scene is static)
+  fill(0);
+  if(frame == 1) {
+    console.log("Loading...");
+    // Show loading screen
+    translate(-width/2,-height/2,0);
+    text("Running rendering pipeline...", 10, 20);
+    text("This may take a while...", 10, 40);
+    text("RENDER INFORMATION", 10, 80);
+    text("Dimensions: " + width + "x" + height, 10, 100);
+    text("Objects: " + Objs.length, 10, 120);
+    // Don't render the first frame (to show the loading screen)
+    return;
+  }
+  if(frame > 2) return; // Stop after 1 frame (to save computation time, there's no need to render more than 1 frame when the scene is static)
+  translate(-width/2,-height/2,0);
+  background(220);
   print("Rendering...");
   // TODO: Render in parellel to save computation time
-  let pixels = render(400, 400);
+  const renderStart = performance.now();
+  let pixels = render(width, height);
+  const renderEnd = performance.now();
+  const renderTime = renderEnd - renderStart;
+  print("Rendered in " + renderTime + "ms");
   print("Drawing...");
+  const drawStart = performance.now();
   drawPixels(pixels);
+  const drawEnd = performance.now();
+  const drawTime = drawEnd - drawStart;
+  print("Drew in " + drawTime + "ms");
   print("Done!");
-  console.log(pixels);
+  const totalTime = renderTime + drawTime;
+  print("Time breakdown:");
+  print("Rendering: " + 100 / (totalTime / renderTime) + "%");
+  print("Drawing: " + 100 / (totalTime / drawTime) + "%");
+  print("Total time: " + totalTime + "ms");
 }
