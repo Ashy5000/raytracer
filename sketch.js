@@ -67,7 +67,12 @@ function createRay(xdim, ydim, x, y) {
   // xdim and ydim are the dimensions of the screen
   // x and y are the coordinates of the pixel
   let origin = [0, 0, 0];
-  let direction = normalize([x, y, 0]);
+  let screenWidth = 1;
+  let screenHeight = 1;
+  let screenDistance = 1;
+  let screenX = (x / xdim - 0.5) * screenWidth;
+  let screenY = (y / ydim - 0.5) * screenHeight;
+  let direction = normalize([screenX, screenY, screenDistance]);
   return new Ray(origin, direction);
 }
 
@@ -91,20 +96,25 @@ function collide(ray, obj) {
     const EPSILON = 0.000001;
     let e1 = subtract(obj.points[1], obj.points[0]);
     let e2 = subtract(obj.points[2], obj.points[0]);
+    // console.log("e1: " + e1);
+    // console.log("e2: " + e2);
     let h = crossProduct(ray.direction, e2);
+    // console.log("h: " + h);
     let a = dot(e1, h);
+    // console.log("a: " + a);
     if(a > -EPSILON && a < EPSILON) return null;
-    console.log("Passed check 1");
     let s = subtract(ray.origin, obj.points[0]);
+    // console.log("s: " + s);
     let u = dot(s, h) / a;
+    // console.log("u: " + u);
     if (u < 0 || u > 1) return null;
-    console.log("Passed check 2");
     let q = crossProduct(s, e1);
+    // console.log("q: " + q);
     let v = dot(ray.direction, q) / a;
+    // console.log("v: " + v);
     if(v < 0 || u + v > 1) return null;
-    console.log("Passed check 3");
     let t = dot(e2, q);
-    console.log(t);
+    // console.log("t: " + t);
     if(t > EPSILON) return t;
     return null;
   }
@@ -120,10 +130,10 @@ function raytrace(ray) {
   let closestObj;
   let closestDistance = Infinity;
   for(let i = 0; i < Objs.length; i++) {
+    correctWindingOrder(Objs[i]);
     let distance = collide(ray, Objs[i]);
     // If the object doesn't collide with the ray, continue
     if(distance == null) continue;
-    console.log("Collided with object " + i + " at distance " + distance);
     // If the distance is less than the closest distance
     if(distance < closestDistance) {
       // Set the closest distance to the distance
@@ -145,6 +155,28 @@ function raytrace(ray) {
   }
 }
 
+function isCCW(A, B, C) {
+  // Compute the cross product between the two edges AB and AC
+  let normal = crossProduct(subtract(B, A), subtract(C, A));
+
+  // If the z-component of the normal is positive, it's CCW (assuming looking down from positive z-axis onto the xy-plane)
+  // Adjust this condition if you use a different convention for your coordinate system
+  return normal[2] > 0;
+}
+
+function isCW(A, B, C) {
+  return !isCCW(A, B, C);
+}
+
+function correctWindingOrder(triangle) {
+  // If the triangle isn't in CW order, swap two vertices to fix it
+  if (!isCW(triangle.points[0], triangle.points[1], triangle.points[2])) {
+    let temp = triangle.points[1];
+    triangle.points[1] = triangle.points[2];
+    triangle.points[2] = temp;
+  }
+}
+
 // render() renders the current scene into a 2D array of pixels
 function render(width, height) {
   let pixels = [];
@@ -156,11 +188,20 @@ function render(width, height) {
       // Raytrace the ray
       pixels[i].push(raytrace(ray));
     }
+    console.log("Rendering... " + Math.round(i / width * 100) + "%");
   }
   return pixels;
 }
 
-Objs.push(new Triangle([0, 0, 0], [[0, 0.005, 0], [0.005, 0, 0], [0, 0.005, 0.005]], {r: 255, g: 0, b: 0}, "triangle"));
+Objs = [
+  {
+      type: 'triangle',
+      origin: [0, 0, 10],
+      points: [[1, -1, 1], [-1, -1, 1], [0, 1, 1],],
+      color: { r: 255, g: 0, b: 0 }  // Red Triangle
+  }
+];
+
 let frame = 0;
 
 // Testing functions
@@ -297,16 +338,16 @@ function runTests() {
   testCollideWithNonTriangleObject();
 }
 
-runTests();
+// runTests();
 
 function draw() {
-  return;
-  // frame++;
-  // if(frame > 1) return; // Stop after 1 frame (save computation time)
-  // print("Rendering...");
-  // // TODO: Render in parellel to save computation time
-  // let pixels = render(width, height);
-  // print("Drawing...");
-  // drawPixels(pixels);
-  // print("Done!");
+  frame++;
+  if(frame > 1) return; // Stop after 1 frame (to save computation time, there's no need to render more than 1 frame when the scene is static)
+  print("Rendering...");
+  // TODO: Render in parellel to save computation time
+  let pixels = render(2, 2);
+  print("Drawing...");
+  drawPixels(pixels);
+  print("Done!");
+  console.log(pixels);
 }
