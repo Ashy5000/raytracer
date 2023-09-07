@@ -6,6 +6,7 @@ const width = 400;
 const height = 400;
 
 let Objs = [];
+let Lights = [];
 
 let roboto;
 function preload() {
@@ -61,6 +62,13 @@ class Triangle extends Obj {
   constructor(origin, points, color) {
     super(origin, color, "triangle");
     this.points = points;
+  }
+}
+
+class Light {
+  constructor(origin, strength) {
+    this.origin = origin;
+    this.strength = strength;
   }
 }
 
@@ -156,10 +164,26 @@ function computeIntersectionPoint(origin, direction, distance) {
  ];
 }
 
+function getInteresections(ray) {
+  let intersections = [];
+  for(let i = 0; i < Objs.length; i++) {
+    let obj = Objs[i];
+    let collision = collide(ray, obj);
+    if(collision == null) continue;
+    let distance = collision.distance;
+    let intersectionPoint = computeIntersectionPoint(ray.origin, ray.direction, distance);
+    intersections.push( { "point": intersectionPoint, "distance": distance });
+  }
+  return intersections;
+}
+
 function raytrace(ray, depth, blend = true, blendAmount = 0.5) {
   // Loop through all objects
   let closestObj;
   let closestDistance = Infinity;
+  let closestLight;
+  let closestLightDistance = Infinity;
+  let color = {r: 0, g: 0, b: 0};
   for(let i = 0; i < Objs.length; i++) {
     correctWindingOrder(Objs[i]);
     let collision = collide(ray, Objs[i]);
@@ -175,6 +199,8 @@ function raytrace(ray, depth, blend = true, blendAmount = 0.5) {
         closestDistance = distance;
         // Set the closest object to the object
         closestObj = Objs[i];
+        // Set the color to the color of the object
+        color = closestObj.color;
       }
     } else {
       // Compute the intersection point
@@ -190,22 +216,33 @@ function raytrace(ray, depth, blend = true, blendAmount = 0.5) {
           g: (reflectedColor.g * blendAmount + objColor.g * (1 - blendAmount)),
           b: (reflectedColor.b * blendAmount + objColor.b * (1 - blendAmount))
         };
-        return blendedColor;
+        color = blendedColor;
       } else {
         let reflectedColor = raytrace(reflectedRay, depth - 1, null, false, 0);
-        return reflectedColor;
+        color = reflectedColor;
       }
     }
   }
-  // Calculate the closest object that the ray collides with
-  // If the ray collides with an object
-  if(closestObj != undefined) {
-    // Recursively raytrace the reflected ray (This will be done in a later version)
-    // Return the color
-    return closestObj.color;
-  // If the ray does not collide with an object
+  let intersectionPoint = computeIntersectionPoint(ray.origin, ray.direction, closestDistance);
+  for(let i = 0; i < Lights.length; i++) {
+    let light = Lights[i];
+    let lightRay = new Ray(intersectionPoint, subtract(light.origin, intersectionPoint));
+    let intersections = getInteresections(lightRay);
+    let closestIntersectionDistance = Infinity;
+    for(let j = 0; j < intersections.length; j++) {
+      let intersection = intersections[j];
+      if(intersection.distance < closestIntersectionDistance && intersection.distance > 0) {
+        closestIntersectionDistance = intersection.distance;
+      }
+    }
+    let lightDistance = Math.sqrt(squareValue(intersectionPoint[0] - light.origin[0]) + squareValue(intersectionPoint[1] - light.origin[1]) + squareValue(intersectionPoint[2] - light.origin[2]));
+    let lightStrength = light.strength;
+    let appliedLightStrength = lightStrength / (lightDistance ** 2);
+    if(lightDistance < closestIntersectionDistance) {
+      color = {r: color.r * appliedLightStrength, g: color.g * appliedLightStrength, b: color.b * appliedLightStrength};
+    }
   }
-  return {r: 0, g: 0, b: 0};
+  return color;
 }
 
 function isCCW(A, B, C) {
@@ -250,7 +287,14 @@ Objs = [
       type: 'triangle',
       origin: [0, 0, 10],
       points: [[1, -1, 1], [-1, -1, 1], [0, 1, 1],],
-      color: { r: 255, g: 0, b: 0 }  // Red Triangle
+      color: { r: 100, g: 0, b: 0 }  // Red Triangle
+  }
+];
+
+Lights = [
+  {
+    origin: [0, 0, 0],
+    strength: 20
   }
 ];
 
