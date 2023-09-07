@@ -2,8 +2,8 @@
 // Version: 1.0
 // This is open source code, feel free to use it for your own projects
 
-const width = 400;
-const height = 400;
+const width = 500;
+const height = 300;
 
 let Objs = [];
 let Lights = [];
@@ -111,6 +111,9 @@ function add(vector1, vector2) {
 // collide() returns true if the ray collides with the Obj
 function collide(ray, obj) {
   if(obj.type == "triangle") {
+    let rand = Math.random();
+    if(rand < obj.transparency) return null;
+    // Moller-Trumbore algorithm
     const EPSILON = 0.000001;
     let e1 = subtract(obj.points[1], obj.points[0]);
     let e2 = subtract(obj.points[2], obj.points[0]);
@@ -287,7 +290,8 @@ Objs = [
       type: 'triangle',
       origin: [0, 0, 10],
       points: [[1, -1, 1], [-1, -1, 1], [0, 1, 1],],
-      color: { r: 100, g: 0, b: 0 }  // Red Triangle
+      color: { r: 100, g: 0, b: 0 },  // Red Triangle,
+      transparency: 0.5
   }
 ];
 
