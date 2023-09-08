@@ -51,16 +51,17 @@ class Ray {
 }
 
 class Obj {
-  constructor(origin, color, type) {
+  constructor(origin, color, type, transparency) {
     this.origin = origin;
     this.color = color;
     this.type = type;
+    this.transparency = transparency;
   }
 }
 
 class Triangle extends Obj {
-  constructor(origin, points, color) {
-    super(origin, color, "triangle");
+  constructor(origin, points, color, transparency) {
+    super(origin, color, "triangle", transparency);
     this.points = points;
   }
 }
