@@ -4,6 +4,7 @@
 
 const width = 500;
 const height = 300;
+const hyperResolution = 2; // The number of rays to cast per pixel
 
 let Objs = [];
 let Lights = [];
@@ -271,6 +272,22 @@ function correctWindingOrder(triangle) {
   }
 }
 
+function pool(pixels, stepSize) {
+  let pooledPixels = [];
+  for(let i = 0; i < pixels.length; i += stepSize) {
+    pooledPixels.push([]);
+    for(let j = 0; j < pixels[0].length; j += stepSize) {
+      let pixel = {
+        r: (pixels[i][j].r + pixels[i + 1][j].r + pixels[i][j + 1].r + pixels[i + 1][j + 1].r) / 4,
+        g: (pixels[i][j].g + pixels[i + 1][j].g + pixels[i][j + 1].g + pixels[i + 1][j + 1].g) / 4,
+        b: (pixels[i][j].b + pixels[i + 1][j].b + pixels[i][j + 1].b + pixels[i + 1][j + 1].b) / 4
+      };
+      pooledPixels[i / stepSize].push(pixel);
+    }
+  }
+  return pooledPixels;
+}
+
 // render() renders the current scene into a 2D array of pixels
 function render(width, height) {
   let pixels = [];
@@ -292,7 +309,7 @@ Objs = [
       origin: [0, 0, 10],
       points: [[1, -1, 1], [-1, -1, 1], [0, 1, 1],],
       color: { r: 100, g: 0, b: 0 },  // Red Triangle,
-      transparency: 0.5
+      transparency: 0
   }
 ];
 
@@ -462,13 +479,14 @@ function draw() {
   print("Rendering...");
   // TODO: Render in parellel to save computation time
   const renderStart = performance.now();
-  let pixels = render(width, height);
+  let pixels = render(width * hyperResolution, height * hyperResolution);
+  let pooledPixels = hyperResolution > 1 ? pool(pixels, hyperResolution) : pixels;
   const renderEnd = performance.now();
   const renderTime = renderEnd - renderStart;
   print("Rendered in " + renderTime + "ms");
   print("Drawing...");
   const drawStart = performance.now();
-  drawPixels(pixels);
+  drawPixels(pooledPixels);
   const drawEnd = performance.now();
   const drawTime = drawEnd - drawStart;
   print("Drew in " + drawTime + "ms");
