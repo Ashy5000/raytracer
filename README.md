@@ -17,11 +17,13 @@ After following those steps, you should see a red triangle on a black background
 ### Classes
 
 #### Obj
-The base class for objects in your scene. Subclasses are:
-1. ##### Triangle
+The base class for objects in your scene. 
    origin: Origin point of the triangle in the form [x, y, z]
+   color: The object's base color
+   transparency: The object's transparency (0 is completely opaque, 1 is completely transparent)
+Subclasses:
+1. ##### Triangle
    points: Vertices of the triangle in the form [[x, y, z], [x, y, z], [x, y, z]]
-   color: The triangle's base color
 
 #### Light
 The class for lights in the scene.
