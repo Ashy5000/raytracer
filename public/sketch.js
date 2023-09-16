@@ -74,6 +74,13 @@ class Light {
   }
 }
 
+class Material {
+  constructor(color, transparency) {
+    this.color = color;
+    this.transparency = transparency;
+  }
+}
+
 function normalize(vector) {
   let magnitude = Math.sqrt(vector[0] * vector[0] + vector[1] * vector[1] + vector[2] * vector[2]);
   return [vector[0] / magnitude, vector[1] / magnitude, vector[2] / magnitude];
@@ -114,7 +121,7 @@ function add(vector1, vector2) {
 function collide(ray, obj) {
   if(obj.type == "triangle") {
     let rand = Math.random();
-    if(rand < obj.transparency) return null;
+    if(rand < obj.material.transparency) return null;
     // Moller-Trumbore algorithm
     const EPSILON = 0.000001;
     let e1 = subtract(obj.points[1], obj.points[0]);
@@ -205,7 +212,7 @@ function raytrace(ray, depth, blend = true, blendAmount = 0.5) {
         // Set the closest object to the object
         closestObj = Objs[i];
         // Set the color to the color of the object
-        color = closestObj.color;
+        color = closestObj.material.color;
       }
     } else {
       // Compute the intersection point
@@ -308,8 +315,7 @@ Objs = [
       type: 'triangle',
       origin: [0, 0, 10],
       points: [[1, -1, 1], [-1, -1, 1], [0, 1, 1],],
-      color: { r: 100, g: 0, b: 0 },  // Red Triangle,
-      transparency: 0
+      material: new Material({ r: 100, g: 0, b: 0 }, 0), // Red triangle
   }
 ];
 
