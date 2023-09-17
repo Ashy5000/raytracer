@@ -4,7 +4,8 @@
 
 const width = 500;
 const height = 300;
-const hyperResolution = 2; // The number of rays to cast per pixel
+const hyperResolution = 1; // The number of rays to cast per pixel
+const raytraceDepth = 3; // The number of times to reflect the ray
 
 let Objs = [];
 let Lights = [];
@@ -75,9 +76,10 @@ class Light {
 }
 
 class Material {
-  constructor(color, transparency) {
+  constructor(color, transparency, roughness) {
     this.color = color;
     this.transparency = transparency;
+    this.roughness = roughness;
   }
 }
 
@@ -158,7 +160,22 @@ function squareValue(x) {
   return x ** 2;
 }
 
-function reflect(incident, normal) {
+function randomInHemisphere(normal) {
+  let u = Math.random();
+  let v = Math.random();
+  let theta = 2 * Math.PI * u;
+  let phi = Math.acos(2 * v - 1);
+  let x = Math.sin(phi) * Math.cos(theta);
+  let y = Math.sin(phi) * Math.sin(theta);
+  let z = Math.cos(phi);
+  let randomDir = [x, y, z];
+  if(dot(randomDir, normal) < 0) {
+    randomDir = [-x, -y, -z];
+  }
+  return randomDir;
+}
+
+function reflectSpecular(incident, normal) {
   let dotProductValue = dot(incident, normal);
   let reflected = [
       incident[0] - 2 * dotProductValue * normal[0],
@@ -166,6 +183,22 @@ function reflect(incident, normal) {
       incident[2] - 2 * dotProductValue * normal[2]
   ];
   return normalize(reflected);
+}
+
+function reflectDiffuse(incident, normal) {
+  let randomDir = randomInHemisphere(normal);
+  return randomDir;
+}
+
+function reflect(incident, normal, roughness) {
+  let specular = reflectSpecular(incident, normal);
+  let diffuse = reflectDiffuse(incident, normal);
+  let reflectedDir = [
+    (1 - roughness) * specular[0] + roughness * diffuse[0],
+    (1 - roughness) * specular[1] + roughness * diffuse[1],
+    (1 - roughness) * specular[2] + roughness * diffuse[2]
+  ];
+  return reflectedDir;
 }
 
 function computeIntersectionPoint(origin, direction, distance) {
@@ -193,11 +226,9 @@ function raytrace(ray, depth, blend = true, blendAmount = 0.5) {
   // Loop through all objects
   let closestObj;
   let closestDistance = Infinity;
-  let closestLight;
-  let closestLightDistance = Infinity;
   let color = {r: 0, g: 0, b: 0};
   for(let i = 0; i < Objs.length; i++) {
-    correctWindingOrder(Objs[i]);
+    // correctWindingOrder(Objs[i]);
     let collision = collide(ray, Objs[i]);
     // If the ray does not collide with the object, continue
     if(collision == null) continue;
@@ -218,7 +249,7 @@ function raytrace(ray, depth, blend = true, blendAmount = 0.5) {
       // Compute the intersection point
       let intersectionPoint = computeIntersectionPoint(ray.origin, ray.direction, distance);
       // Compute the reflected ray
-      let reflectedRay = new Ray(intersectionPoint, reflect(ray.direction, normal));
+      let reflectedRay = new Ray(intersectionPoint, reflect(ray.direction, normal, Objs[i].material.roughness));
       // Recursively raytrace the reflected ray
       if(blend) {
         let objColor = raytrace(ray, 0, null, false, 0);
@@ -271,6 +302,7 @@ function isCW(A, B, C) {
 }
 
 function correctWindingOrder(triangle) {
+  if (triangle.skipWindingOrder) return;
   // If the triangle isn't in CW order, swap two vertices to fix it
   if (!isCW(triangle.points[0], triangle.points[1], triangle.points[2])) {
     let temp = triangle.points[1];
@@ -304,7 +336,7 @@ function render(width, height) {
       // Create a ray from the camera to the pixel
       let ray = createRay(width, height, i, j);
       // Raytrace the ray
-      pixels[i].push(raytrace(ray, 1));
+      pixels[i].push(raytrace(ray, raytraceDepth));
     }
   }
   return pixels;
@@ -312,11 +344,19 @@ function render(width, height) {
 
 Objs = [
   {
+    type: 'triangle',
+    origin: [0, 0, 1],
+    points: [[0, 0.5, 1],[-0.5, -0.5, 1], [0.5, -0.5, 1],],
+    material: new Material({ r: 0, g: 0, b: 255 }, 0, 0), // Black triangle
+    skipWindingOrder: true
+  },
+  {
       type: 'triangle',
-      origin: [0, 0, 10],
+      origin: [0, 0, 1],
       points: [[1, -1, 1], [-1, -1, 1], [0, 1, 1],],
-      material: new Material({ r: 100, g: 0, b: 0 }, 0), // Red triangle
-  }
+      material: new Material({ r: 255, g: 0, b: 0 }, 0, 1), // Red triangle
+      skipWindingOrder: false
+  },
 ];
 
 Lights = [
