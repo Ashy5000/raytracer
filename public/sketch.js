@@ -13,6 +13,15 @@ let Lights = [];
 let roboto;
 function preload() {
   roboto = loadFont("Roboto-Regular.otf");
+  fetch("http://localhost:5500/scene.json")
+    .then(response => response.json())
+    .then(data => {
+      Objs = data.objects;
+      Lights = data.lights;
+    })
+    .catch(error => {
+      console.error(error);
+    });
 }
 
 function setup() {
@@ -342,29 +351,29 @@ function render(width, height) {
   return pixels;
 }
 
-Objs = [
-  {
-    type: 'triangle',
-    origin: [0, 0, 1],
-    points: [[0, 0.5, 1],[-0.5, -0.5, 1], [0.5, -0.5, 1],],
-    material: new Material({ r: 0, g: 0, b: 255 }, 0, 0), // Black triangle
-    skipWindingOrder: true
-  },
-  {
-      type: 'triangle',
-      origin: [0, 0, 1],
-      points: [[1, -1, 1], [-1, -1, 1], [0, 1, 1],],
-      material: new Material({ r: 255, g: 0, b: 0 }, 0, 1), // Red triangle
-      skipWindingOrder: false
-  },
-];
+// Objs = [
+//   {
+//     type: 'triangle',
+//     origin: [0, 0, 1],
+//     points: [[0, 0.5, 1],[-0.5, -0.5, 1], [0.5, -0.5, 1],],
+//     material: new Material({ r: 0, g: 0, b: 255 }, 0, 0), // Black triangle
+//     skipWindingOrder: true
+//   },
+//   {
+//       type: 'triangle',
+//       origin: [0, 0, 1],
+//       points: [[1, -1, 1], [-1, -1, 1], [0, 1, 1],],
+//       material: new Material({ r: 255, g: 0, b: 0 }, 0, 1), // Red triangle
+//       skipWindingOrder: false
+//   },
+// ];
 
-Lights = [
-  {
-    origin: [0, 0, 0],
-    strength: 20
-  }
-];
+// Lights = [
+//   {
+//     origin: [0, 0, 0],
+//     strength: 20
+//   }
+// ];
 
 let frame = 0;
 

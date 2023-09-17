@@ -1,0 +1,48 @@
+{
+  "objects": [
+    {
+      "type": "triangle",
+      "origin": [0, 0, 1],
+      "points": [
+        [0, 0.5, 1],
+        [-0.5, -0.5, 1],
+        [0.5, -0.5, 1]
+      ],
+      "material": {
+        "color": {
+          "r": 0, 
+          "g": 0,
+          "b": 0
+        },
+        "transparency": 0,
+        "roughness": 0
+      },
+      "skipWindingOrder": false
+    },
+    {
+      "type": "triangle",
+      "origin": [0, 0, 1],
+      "points": [
+        [1, -1, 1],
+        [-1, -1, 1],
+        [0, 1, 1]
+      ],
+      "material": {
+        "color": { 
+          "r": 255,
+          "g": 0,
+          "b": 0
+        },
+        "transparency": 0,
+        "rougness": 1
+      },
+      "skipWindingOrder": false
+    }
+  ],
+  "lights": [
+    {
+      "origin": [0, 0, 0],
+      "strength": 20
+    }
+  ] 
+}
